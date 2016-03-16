@@ -13,19 +13,24 @@ RUN apt-get update && apt-get install -y docker-engine
 ### Add VsoAgent user
 RUN useradd -m vsoagent && gpasswd -a vsoagent docker && gpasswd -a vsoagent users
 
-
-### Add maven settings and change premission on .m2 folder
-COPY settings.xml /home/vsoagent/.m2/settings.xml
-RUN chown -R vsoagent:vsoagent /home/vsoagent/.m2
-
-
 ### Change user and workdir
 USER vsoagent
 WORKDIR /home/vsoagent
 
-
 ### Install VSO-Agent using bash and curl
 RUN curl -skSL http://aka.ms/xplatagent | bash
 
-### Run agent, this requires docker container to be started in interactive mode
-ENTRYPOINT ["bash","./run.sh"]
+
+### Add maven settings and entrypoint script
+COPY settings.xml /home/vsoagent/.m2/settings.xml
+COPY entrypoint.sh /home/vsoagent/entrypoint.sh
+
+### This file contains the basic credentials for TFS
+COPY .basic_credentials /home/vsoagent/.basic_credentials
+
+## Fixing premissions on .m2 dir
+USER root
+RUN chown -R vsoagent:vsoagent /home/vsoagent/.m2
+USER vsoagent
+
+ENTRYPOINT ["sh","entrypoint.sh"]
